@@ -1,9 +1,143 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Activity, Radio, RotateCw, RefreshCw,
-    Satellite, Play, Rocket, Lock, Crosshair, Star, ChevronRight
+    Satellite, Play, Rocket, Lock, Crosshair, Star, ChevronRight,
+    Info, AlertTriangle, Target, BookOpen, Medal, Lightbulb, AlertOctagon // Added icons
 } from 'lucide-react';
-import SuccessModal from '../components/ui/SuccessModal';
+// import SuccessModal from '../components/ui/SuccessModal'; // Removed as we are using internal Modal
+
+// --- SHARED STYLES & CONSTANTS ---
+const PIXEL_FONT = "font-pixel";
+
+// --- EDUCATIONAL CONTENT ---
+const FUN_FACTS = [
+    {
+        id: 1,
+        title: "THE OBERTH EFFECT",
+        text: "Engines differ in space! Burning fuel when moving FAST (at Perigee) gives you more energy than burning when slow. It's like pushing a swing at the bottom of the arc."
+    },
+    {
+        id: 2,
+        title: "ORBITAL ECCENTRICITY",
+        text: "We aren't aiming for a circle. We want a highly elliptical orbit (egg-shaped) to build up speed for the final push to Mars."
+    }
+];
+
+// --- MRD & CONFIGURATION ---
+const MRD_CONTENT = {
+    briefing: {
+        title: "LEVEL 3: ORBIT INJECTION",
+        subtitle: "RAISING THE APOGEE",
+        sections: [
+            {
+                label: "MISSION GOAL",
+                text: "We are now in a low parking orbit. To get to Mars, we need to stretch this orbit out. Your goal is to raise the Apogee (highest point) to 23,500 km."
+            },
+            {
+                label: "CRITICAL TASKS",
+                items: [
+                    "SYSTEMS: Enable Attitude Control (ACS) and Telemetry (TM).",
+                    "ALIGNMENT: Use the slider to keep Pitch at 0°.",
+                    "TIMING: Only fire the engine when inside the green BURN WINDOW at Perigee.",
+                    "EFFICIENCY: Do not waste fuel burning outside the window."
+                ]
+            }
+        ],
+        physics_tip: {
+            label: "PRO TIP: OBERTH EFFECT",
+            text: "Fire your engines when you are closest to Earth (Perigee) and moving fastest. This is the most efficient way to raise the other side of your orbit (Apogee)."
+        }
+    },
+    failure_tips: {
+        "FUEL DEPLETED": {
+            title: "OUT OF PROPELLANT",
+            analysis: "You ran out of fuel before reaching the target orbit. Likely cause: Burning outside the Perigee window or fighting the controls.",
+            correction: "Only hold 'IGNITE' when the 'BURN WINDOW' light is flashing green."
+        },
+        "OVERBURN: ORBIT UNSTABLE": {
+            title: "ORBIT DESTABILIZED",
+            analysis: "You fired too long and overshot the target apogee. The orbit is now too eccentric to correct safely.",
+            correction: "Release the 'IGNITE' button as soon as you hit the target altitude."
+        },
+        "ACS OFF: TUMBLED": {
+            title: "LOSS OF CONTROL",
+            analysis: "You attempted to fire the main engine without Attitude Control Systems active. The rocket spun out of control immediately.",
+            correction: "Ensure 'ACS' is toggled ON before attempting any burns."
+        }
+    },
+    success: {
+        title: "EPO ESTABLISHED",
+        mission_impact: "Beautiful flying! We have successfully raised our apogee to 23,500 km. This Highly Elliptical Orbit (HEO) is the perfect staging ground for our Trans-Mars Injection.",
+        details: [
+            {
+                topic: "FLIGHT DATA",
+                content: "• Time: ~20 min after launch\n• Orbit Achieved: 248 km × 23,500 km\n• MOM Fuel: ~852 kg (Full - no burns yet)\n• Status: Systems nominal, engines idle"
+            },
+            {
+                topic: "MISSION VOCABULARY",
+                content: "• APOGEE: The point in orbit farthest from Earth.\n• PERIGEE: The point in orbit closest to Earth.\n• DELTA-V: Change in velocity. The 'budget' for your maneuvers.\n• OBERTH EFFECT: Burning fast = More energy gained."
+            },
+            {
+                topic: "PERFORMANCE REPORT",
+                content: "Your burn timing utilized the Oberth Effect perfectly, maximizing fuel efficiency. Systems are green for the next phase."
+            },
+            {
+                topic: "WHAT'S NEXT?",
+                content: "Level 4 is the big one. We will perform a final 'Trans-Mars Injection' (TMI) burn to escape Earth's gravity completely and head into deep space."
+            }
+        ]
+    }
+};
+
+
+// --- UI COMPONENTS (Copied from Level 2) ---
+
+const Modal = ({ title, children, onClose, variant = 'neutral', buttonText = "CONTINUE", onSecondary, secondaryButtonText }) => {
+    const bgColors = {
+        neutral: "border-blue-500 shadow-blue-900/50",
+        danger: "border-red-500 shadow-red-900/50",
+        success: "border-green-500 shadow-green-900/50"
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className={`bg-slate-900 border-4 ${bgColors[variant]} max-w-lg w-full shadow-2xl relative flex flex-col max-h-[90vh]`}>
+
+                {/* Fixed Header */}
+                <div className="p-6 pb-2 shrink-0">
+                    <h2 className={`font-pixel text-sm md:text-base text-center ${variant === 'danger' ? 'text-red-400' : variant === 'success' ? 'text-green-400' : 'text-blue-400'}`}>
+                        {title}
+                    </h2>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="px-6 py-2 overflow-y-auto custom-scroll flex-1">
+                    <div className="space-y-4 font-mono text-xs md:text-sm text-slate-300 leading-relaxed">
+                        {children}
+                    </div>
+                </div>
+
+                {/* Fixed Footer Buttons */}
+                <div className="p-6 pt-4 shrink-0 flex gap-3">
+                    {onSecondary && (
+                        <button
+                            onClick={onSecondary}
+                            className="flex-1 bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase"
+                        >
+                            {secondaryButtonText}
+                        </button>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className={`${onSecondary ? 'flex-1' : 'w-full'} bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase`}
+                    >
+                        {buttonText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- Constants ---
 const BASE_APOGEE = 400; // km
@@ -69,6 +203,12 @@ const StatGauge = ({ label, value, unit, status = "normal" }) => {
 
 export default function Level3OrbitInjection({ onBack, onNextLevel }) {
     // --- State ---
+    // Modals
+    const [showBriefing, setShowBriefing] = useState(true);
+    const [isInitialBriefing, setIsInitialBriefing] = useState(true);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [failData, setFailData] = useState(null);
+
     // Systems
     const [attitudeActive, setAttitudeActive] = useState(false);
     const [telemetryActive, setTelemetryActive] = useState(false);
@@ -116,6 +256,7 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
         if (Math.abs(apogee - target) <= tolerance) {
             if (currentStageIndex === 2) {
                 setMissionStatus('orbit_achieved');
+                setTimeout(() => setShowSuccess(true), 1500); // Delay for effect
             } else {
                 setMissionStatus('stage_complete');
                 setCurrentStageIndex(idx => idx + 1);
@@ -167,7 +308,7 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
                 isBurningRef.current = false;
                 setIsBurningUI(false);
                 setMissionStatus('failed');
-                setFailureReason("FUEL DEPLETED");
+                failMission("FUEL DEPLETED"); // Use new fail handler
                 return;
             }
 
@@ -219,11 +360,15 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
         setIsBurningUI(false);
     };
 
-    const failMission = (reason) => {
+    const failMission = (reasonCode) => {
         setMissionStatus('failed');
-        setFailureReason(reason);
+        setFailureReason(reasonCode); // Keep for inline display if needed
         isBurningRef.current = false;
         setIsBurningUI(false);
+
+        // Set Modal Data
+        const err = MRD_CONTENT.failure_tips[reasonCode] || { title: "MISSION FAILURE", analysis: "Unknown Error", correction: "Retry Mission" };
+        setFailData(err);
     };
 
     const resetLevel = () => {
@@ -242,6 +387,9 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
         setIsOrbitInitialized(false);
         isBurningRef.current = false;
         setIsBurningUI(false);
+
+        setShowSuccess(false);
+        setFailData(null);
     };
 
     // --- Visualization Calculations ---
@@ -282,6 +430,108 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
         }
       `}</style>
 
+            {/* --- MODALS --- */}
+
+            {showBriefing && (
+                <Modal
+                    title={MRD_CONTENT.briefing.title}
+                    onClose={() => { setShowBriefing(false); setIsInitialBriefing(false); }}
+                    buttonText={isInitialBriefing ? "ENTER MISSION CONTROL" : "RESUME MISSION"}
+                >
+                    <div className="text-center text-blue-300 font-bold mb-2">{MRD_CONTENT.briefing.subtitle}</div>
+                    <div className="space-y-4">
+                        <div className="bg-slate-800 p-3 border-l-4 border-blue-500">
+                            <h3 className="text-blue-400 font-bold mb-1 flex items-center gap-2"><Target size={14} /> MISSION GOAL</h3>
+                            <p>{MRD_CONTENT.briefing.sections[0].text}</p>
+                        </div>
+                        <div className="bg-slate-800 p-3 border-l-4 border-amber-500">
+                            <h3 className="text-amber-400 font-bold mb-1 flex items-center gap-2"><AlertTriangle size={14} /> CRITICAL TASKS</h3>
+                            <ul className="list-disc pl-4 space-y-1">
+                                {MRD_CONTENT.briefing.sections[1].items.map((item, i) => (
+                                    <li key={i}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="bg-slate-800 p-3 border-l-4 border-green-500">
+                            <h3 className="text-green-400 font-bold mb-1 flex items-center gap-2"><BookOpen size={14} /> {MRD_CONTENT.briefing.physics_tip.label}</h3>
+                            <p>{MRD_CONTENT.briefing.physics_tip.text}</p>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {failData && (
+                <Modal
+                    title={failData.title}
+                    variant="danger"
+                    onClose={resetLevel}
+                    buttonText="RETRY SIMULATION"
+                >
+                    <div className="flex flex-col items-center gap-4 w-full">
+                        <AlertOctagon size={48} className="text-red-500 animate-pulse" />
+                        <div className="w-full space-y-4">
+                            <div className="bg-red-950/30 p-3 border-l-2 border-red-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-red-400 mb-1">FAILURE ANALYSIS</h4>
+                                <p className="text-sm text-slate-300">{failData.analysis}</p>
+                            </div>
+                            <div className="bg-blue-950/30 p-3 border-l-2 border-blue-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-blue-400 mb-1">RECOVERY PLAN</h4>
+                                <p className="text-sm text-slate-300">{failData.correction}</p>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {showSuccess && (
+                <Modal
+                    title={MRD_CONTENT.success.title}
+                    variant="success"
+                    onClose={onNextLevel}
+                    buttonText="NEXT LEVEL"
+                    onSecondary={resetLevel}
+                    secondaryButtonText="REPLAY LEVEL"
+                >
+                    <div className="flex flex-col items-center gap-4">
+                        <Medal size={64} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce" />
+
+                        {/* --- MISSION DEBRIEF --- */}
+                        <div className="bg-slate-800 p-4 border border-green-900 rounded-sm w-full">
+                            <h3 className="text-green-400 font-bold mb-3 text-center border-b border-green-900/50 pb-2">MISSION DEBRIEF</h3>
+
+                            {/* Mission Impact Section */}
+                            <div className="mb-4 text-center">
+                                <p className="text-sm text-white font-bold mb-2 italic">"{MRD_CONTENT.success.mission_impact}"</p>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                {MRD_CONTENT.success.details.map((point, idx) => (
+                                    <div key={idx} className="text-left">
+                                        <div className="text-[10px] font-pixel text-green-300 mb-1">✓ {point.topic}</div>
+                                        <div className="text-xs text-slate-400 leading-relaxed font-sans whitespace-pre-line">{point.content}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* --- MISSION TRIVIA SECTION --- */}
+                            <div className="bg-slate-900/50 border border-slate-700 p-3 rounded-sm">
+                                <h4 className="text-[10px] font-pixel text-cyan-400 mb-2 flex items-center gap-2">
+                                    <Lightbulb size={12} /> MISSION TRIVIA
+                                </h4>
+                                <div className="space-y-3">
+                                    {FUN_FACTS.map((fact) => (
+                                        <div key={fact.id} className="text-left">
+                                            <span className="text-[9px] font-bold text-slate-300 block mb-0.5">{fact.title}</span>
+                                            <p className="text-[10px] text-slate-500 leading-tight">{fact.text}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             {/* HEADER */}
             <div className="w-full max-w-6xl flex items-center justify-between border-b-8 border-slate-800 pb-6 mb-8">
                 <div className="flex items-center gap-6">
@@ -304,9 +554,18 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
                         </p>
                     </div>
                 </div>
-                <div className="hidden sm:block text-right">
-                    <div className="text-xs font-pixel text-slate-500 mb-1">MISSION CLOCK</div>
-                    <div className="font-mono text-2xl text-green-500">T+ 00:19:42</div>
+                <div className="flex gap-4 items-center">
+                    <button
+                        onClick={() => setShowBriefing(true)}
+                        className="hidden sm:flex bg-slate-800 px-3 py-1 border border-slate-600 items-center gap-2 hover:bg-slate-700 transition-colors"
+                    >
+                        <Info size={14} className="text-blue-400" />
+                        <span className="text-[10px] font-pixel text-slate-300">MRD DOCS</span>
+                    </button>
+                    <div className="hidden sm:block text-right">
+                        <div className="text-xs font-pixel text-slate-500 mb-1">MISSION CLOCK</div>
+                        <div className="font-mono text-2xl text-green-500">T+ 00:19:42</div>
+                    </div>
                 </div>
             </div>
 
@@ -526,9 +785,7 @@ export default function Level3OrbitInjection({ onBack, onNextLevel }) {
             </div>
 
             {/* SUCCESS MODAL */}
-            {missionStatus === 'orbit_achieved' && (
-                <SuccessModal onRetry={resetLevel} onNext={onNextLevel || onBack} />
-            )}
+            {/* OLD SUCCESS MODAL REMOVED - REPLACED BY NEW MODAL ABOVE */}
         </div>
     );
 }

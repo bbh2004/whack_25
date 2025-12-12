@@ -3,8 +3,140 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Satellite, Radio, RotateCw, Navigation,
     AlertTriangle, CheckCircle, Flame, Battery, Signal,
-    Crosshair, Zap, RefreshCw, Power, Activity, XCircle, Play
+    Crosshair, Zap, RefreshCw, Power, Activity, XCircle, Play,
+    Info, Target, BookOpen, Medal, Lightbulb, AlertOctagon // Added icons
 } from 'lucide-react';
+
+// --- SHARED STYLES ---
+const PIXEL_FONT = "font-pixel";
+
+// --- EDUCATIONAL CONTENT ---
+const FUN_FACTS = [
+    {
+        id: 1,
+        title: "DEEP SPACE NETWORK (DSN)",
+        text: "NASA's international array of giant radio antennas that supports interplanetary spacecraft missions."
+    },
+    {
+        id: 2,
+        title: "LIGHT DELAY",
+        text: "Radio signals take time to travel. Communicating with Mars can take anywhere from 3 to 22 minutes one-way!"
+    }
+];
+
+// --- MRD & CONFIGURATION ---
+const MRD_CONTENT = {
+    briefing: {
+        title: "LEVEL 6: MARS TRANSFER",
+        subtitle: "THE LONG JOURNEY",
+        sections: [
+            {
+                label: "MISSION GOAL",
+                text: "Survive the 300-day cruise to Mars. Monitor spacecraft systems and resolve any anomalies that arise in deep space."
+            },
+            {
+                label: "CRITICAL TASKS",
+                items: [
+                    "TRAJECTORY: Perform TCMs to keep the probe on course.",
+                    "COMMAMDS: Aim the High-Gain Antenna (HGA) to Earth.",
+                    "ATTITUDE: Dump momentum from reaction wheels.",
+                    "SENSORS: Recalibrate Star Trackers if blinded."
+                ]
+            }
+        ],
+        physics_tip: {
+            label: "PRO TIP: CRUISE PHASE",
+            text: "Space is active! Solar radiation pressure pushes the craft, and gyroscopes drift. You must constantly correct these small errors."
+        }
+    },
+    failure_tips: {
+        "FUEL DEPLETED - JETS DRY": {
+            title: "OUT OF GAS",
+            analysis: "Reaction Control System (RCS) fuel is empty. We cannot steer or correct our course.",
+            correction: "Conserve fuel. Don't spam thrusters."
+        },
+        "COMMUNICATION LOST - LINK SEVERED": {
+            title: "LOST IN SPACE",
+            analysis: "Signal strength dropped to zero. Mission Control has lost telemetry and command capability.",
+            correction: "Keep the antenna pointed at Earth at all times."
+        },
+        "POWER FAILURE - BATTERY DEAD": {
+            title: "BLACKOUT",
+            analysis: "Batteries drained completely. The spacecraft has frozen to death.",
+            correction: "Resolve problems quickly to save power. Don't let attitude drift persist."
+        }
+    },
+    success: {
+        title: "MISSION ACCOMPLISHED",
+        mission_impact: "Mars Orbit Insertion (MOI) Successful! The Mangalyaan probe has entered a stable orbit around the Red Planet. History is made.",
+        details: [
+            {
+                topic: "FLIGHT DATA",
+                content: "• Duration: Dec 2013 - Sept 2014 (298 days)\n• Distance: ~1 million km → 225 million km\n• Fuel at Start: ~240-250 kg\n• Fuel for TCMs: Minimal (<10 kg)\n• Final Mars Orbit: 420 km × 76,000 km\n• Mission Status: SUCCESS"
+            },
+            {
+                topic: "MISSION VOCABULARY",
+                content: "• TCM: Trajectory Correction Maneuver (Steering in space).\n• HGA: High Gain Antenna (The main communication dish).\n• SAFEMODE: A survival state where the craft points to the sun and waits."
+            },
+            {
+                topic: "PERFORMANCE REPORT",
+                content: "All systems checks passed. You have successfully navigated from launch to orbit. The scientific mission can now begin."
+            },
+            {
+                topic: "CONGRATULATIONS",
+                content: "You have completed the ISRO Mission Simulator. You are now a certified Rocket Scientist."
+            }
+        ]
+    }
+};
+
+// --- UI COMPONENTS (Standardized Modal) ---
+const Modal = ({ title, children, onClose, variant = 'neutral', buttonText = "CONTINUE", onSecondary, secondaryButtonText }) => {
+    const bgColors = {
+        neutral: "border-blue-500 shadow-blue-900/50",
+        danger: "border-red-500 shadow-red-900/50",
+        success: "border-green-500 shadow-green-900/50"
+    };
+
+    return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className={`bg-slate-900 border-4 ${bgColors[variant]} max-w-lg w-full shadow-2xl relative flex flex-col max-h-[90vh]`}>
+
+                {/* Fixed Header */}
+                <div className="p-6 pb-2 shrink-0">
+                    <h2 className={`font-pixel text-sm md:text-base text-center ${variant === 'danger' ? 'text-red-400' : variant === 'success' ? 'text-green-400' : 'text-blue-400'}`}>
+                        {title}
+                    </h2>
+                </div>
+
+                {/* Scrollable Content */}
+                <div className="px-6 py-2 overflow-y-auto custom-scroll flex-1">
+                    <div className="space-y-4 font-mono text-xs md:text-sm text-slate-300 leading-relaxed">
+                        {children}
+                    </div>
+                </div>
+
+                {/* Fixed Footer Buttons */}
+                <div className="p-6 pt-4 shrink-0 flex gap-3">
+                    {onSecondary && (
+                        <button
+                            onClick={onSecondary}
+                            className="flex-1 bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase"
+                        >
+                            {secondaryButtonText}
+                        </button>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className={`${onSecondary ? 'flex-1' : 'w-full'} bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase`}
+                    >
+                        {buttonText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 // --- Constants ---
 const TOTAL_DISTANCE = 100; // % to Mars
@@ -85,6 +217,12 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
     const [missionStatus, setMissionStatus] = useState('cruising');
     const [message, setMessage] = useState("AWAITING LAUNCH COMMAND...");
 
+    // Modal State
+    const [showBriefing, setShowBriefing] = useState(true);
+    const [isInitialBriefing, setIsInitialBriefing] = useState(true);
+    const [showSuccess, setShowSuccess] = useState(false);
+    const [failData, setFailData] = useState(null);
+
     // --- Problem Specific State ---
     const [driftX, setDriftX] = useState(0);
     const [driftY, setDriftY] = useState(0);
@@ -130,6 +268,7 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
                 if (p >= TOTAL_DISTANCE) {
                     setMissionStatus('success');
                     setMessage("MARS ORBIT INSERTION REACHED. MISSION ACCOMPLISHED.");
+                    setTimeout(() => setShowSuccess(true), 1500);
                     return 100;
                 }
                 return p + CRUISE_SPEED;
@@ -233,6 +372,8 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
         setProblemQueue([]);
         setProblemTriggers([]);
         setProblemIndex(0);
+        setFailData(null);
+        setShowSuccess(false);
     };
 
     const triggerQueuedProblem = () => {
@@ -268,10 +409,13 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
         if (signalStrength < 100) setSignalStrength(100);
     };
 
-    const failMission = (reason) => {
+    const failMission = (reasonCode) => {
         setMissionStatus('failed');
         setActiveProblem(null);
-        setMessage(reason);
+
+        const err = MRD_CONTENT.failure_tips[reasonCode] || { title: "MISSION FAILED", analysis: reasonCode, correction: "Retry." };
+        setFailData(err);
+        setMessage(reasonCode);
         cancelAnimationFrame(requestRef.current);
     };
 
@@ -586,6 +730,107 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
         .blink { animation: pulse 0.5s infinite; }
       `}</style>
 
+            {/* --- MODALS --- */}
+            {showBriefing && (
+                <Modal
+                    title={MRD_CONTENT.briefing.title}
+                    onClose={() => { setShowBriefing(false); setIsInitialBriefing(false); }}
+                    buttonText={isInitialBriefing ? "ENTER MISSION CONTROL" : "RESUME MISSION"}
+                >
+                    <div className="text-center text-blue-300 font-bold mb-2">{MRD_CONTENT.briefing.subtitle}</div>
+                    <div className="space-y-4">
+                        <div className="bg-slate-800 p-3 border-l-4 border-blue-500">
+                            <h3 className="text-blue-400 font-bold mb-1 flex items-center gap-2"><Target size={14} /> MISSION GOAL</h3>
+                            <p>{MRD_CONTENT.briefing.sections[0].text}</p>
+                        </div>
+                        <div className="bg-slate-800 p-3 border-l-4 border-amber-500">
+                            <h3 className="text-amber-400 font-bold mb-1 flex items-center gap-2"><AlertTriangle size={14} /> CRITICAL TASKS</h3>
+                            <ul className="list-disc pl-4 space-y-1">
+                                {MRD_CONTENT.briefing.sections[1].items.map((item, i) => (
+                                    <li key={i}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="bg-slate-800 p-3 border-l-4 border-green-500">
+                            <h3 className="text-green-400 font-bold mb-1 flex items-center gap-2"><BookOpen size={14} /> {MRD_CONTENT.briefing.physics_tip.label}</h3>
+                            <p>{MRD_CONTENT.briefing.physics_tip.text}</p>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {failData && (
+                <Modal
+                    title={failData.title}
+                    variant="danger"
+                    onClose={resetLevel}
+                    buttonText="RETRY SIMULATION"
+                >
+                    <div className="flex flex-col items-center gap-4 w-full">
+                        <AlertOctagon size={48} className="text-red-500 animate-pulse" />
+                        <div className="w-full space-y-4">
+                            <div className="bg-red-950/30 p-3 border-l-2 border-red-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-red-400 mb-1">FAILURE ANALYSIS</h4>
+                                <p className="text-sm text-slate-300">{failData.analysis}</p>
+                            </div>
+                            <div className="bg-blue-950/30 p-3 border-l-2 border-blue-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-blue-400 mb-1">RECOVERY PLAN</h4>
+                                <p className="text-sm text-slate-300">{failData.correction}</p>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {showSuccess && (
+                <Modal
+                    title={MRD_CONTENT.success.title}
+                    variant="success"
+                    onClose={onBack}
+                    buttonText="RETURN TO MENU"
+                    onSecondary={resetLevel}
+                    secondaryButtonText="REPLAY LEVEL"
+                >
+                    <div className="flex flex-col items-center gap-4">
+                        <Medal size={64} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce" />
+
+                        {/* --- MISSION DEBRIEF --- */}
+                        <div className="bg-slate-800 p-4 border border-green-900 rounded-sm w-full">
+                            <h3 className="text-green-400 font-bold mb-3 text-center border-b border-green-900/50 pb-2">MISSION DEBRIEF</h3>
+
+                            {/* Mission Impact Section */}
+                            <div className="mb-4 text-center">
+                                <p className="text-sm text-white font-bold mb-2 italic">"{MRD_CONTENT.success.mission_impact}"</p>
+                            </div>
+
+                            <div className="space-y-3 mb-6">
+                                {MRD_CONTENT.success.details.map((point, idx) => (
+                                    <div key={idx} className="text-left">
+                                        <div className="text-[10px] font-pixel text-green-300 mb-1">✓ {point.topic}</div>
+                                        <div className="text-xs text-slate-400 leading-relaxed font-sans whitespace-pre-line">{point.content}</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* --- MISSION TRIVIA SECTION --- */}
+                            <div className="bg-slate-900/50 border border-slate-700 p-3 rounded-sm">
+                                <h4 className="text-[10px] font-pixel text-cyan-400 mb-2 flex items-center gap-2">
+                                    <Lightbulb size={12} /> MISSION TRIVIA
+                                </h4>
+                                <div className="space-y-3">
+                                    {FUN_FACTS.map((fact) => (
+                                        <div key={fact.id} className="text-left">
+                                            <span className="text-[9px] font-bold text-slate-300 block mb-0.5">{fact.title}</span>
+                                            <p className="text-[10px] text-slate-500 leading-tight">{fact.text}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
             {/* Main Bezel */}
             <div className="w-full max-w-4xl bg-slate-800 p-3 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] border-4 border-slate-700 ring-4 ring-black relative z-10">
 
@@ -604,7 +849,16 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
                         <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_red]" />
                         <h1 className="text-slate-200 font-pixel text-xs sm:text-sm">MOM FLIGHT DECK</h1>
                     </div>
-                    <div className="font-mono text-green-500 text-sm">MET: T+ 142D 04H</div>
+                    <div className="flex gap-4 items-center">
+                        <button
+                            onClick={() => setShowBriefing(true)}
+                            className="hidden sm:flex bg-slate-700 px-2 py-1 border border-slate-500 items-center gap-2 hover:bg-slate-600 transition-colors rounded"
+                        >
+                            <Info size={12} className="text-blue-400" />
+                            <span className="text-[9px] font-pixel text-slate-300">MRD</span>
+                        </button>
+                        <div className="font-mono text-green-500 text-sm">MET: T+ 142D 04H</div>
+                    </div>
                 </div>
 
                 {/* 1. TOP VIEWPORT */}
@@ -681,50 +935,7 @@ export default function Level6MarsTransfer({ onBack, onNextLevel }) {
 
             </div>
 
-            {/* --- OVERLAYS --- */}
-
-            {/* SUCCESS OVERLAY */}
-            {missionStatus === 'success' && (
-                <div className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-green-900/90 border-4 border-green-500 p-8 rounded-xl text-center shadow-[0_0_50px_rgba(34,197,94,0.5)]">
-                        <CheckCircle size={64} className="text-white mx-auto mb-4" />
-                        <h2 className="text-3xl font-pixel text-white mb-2">MISSION ACCOMPLISHED</h2>
-                        <p className="text-green-300 font-mono mb-6">MARS ORBIT INSERTION SUCCESSFUL</p>
-                        <p className="text-yellow-300 font-pixel text-sm mb-6">🎉 ALL LEVELS COMPLETE! 🎉</p>
-                        <div className="flex gap-4 justify-center">
-                            <button
-                                onClick={resetLevel}
-                                className="px-4 py-3 bg-slate-600 hover:bg-slate-500 text-white font-pixel text-xs border-b-4 border-slate-800 active:border-0 active:translate-y-1"
-                            >
-                                PLAY AGAIN
-                            </button>
-                            <button
-                                onClick={onBack}
-                                className="px-6 py-3 bg-green-700 hover:bg-green-600 text-white font-pixel text-xs border-b-4 border-green-900 active:border-0 active:translate-y-1"
-                            >
-                                RETURN TO MENU
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* FAILURE OVERLAY */}
-            {missionStatus === 'failed' && (
-                <div className="absolute inset-0 z-50 bg-black/90 flex items-center justify-center backdrop-blur-sm">
-                    <div className="bg-red-900/90 border-4 border-red-500 p-8 rounded-xl text-center animate-pulse shadow-[0_0_50px_rgba(239,68,68,0.5)]">
-                        <AlertTriangle size={64} className="text-white mx-auto mb-4" />
-                        <h2 className="text-3xl font-pixel text-white mb-2">MISSION FAILED</h2>
-                        <p className="text-red-300 font-mono mb-6 uppercase">{message}</p>
-                        <button
-                            onClick={resetLevel}
-                            className="px-6 py-3 bg-red-700 hover:bg-red-600 text-white font-pixel text-xs border-b-4 border-red-900 active:border-0 active:translate-y-1"
-                        >
-                            RETRY
-                        </button>
-                    </div>
-                </div>
-            )}
+            {/* OLD OVERLAYS REMOVED - REPLACED BY MODALS */}
 
         </div>
     );

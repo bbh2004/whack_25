@@ -17,15 +17,10 @@ const LandingPage = () => {
     };
 
     return (
-        <div className="relative min-h-screen text-white overflow-x-hidden selection:bg-neonBlue selection:text-black">
+        <div className="relative min-h-screen text-white overflow-hidden selection:bg-neonBlue selection:text-black flex flex-col items-center justify-center">
             <StarryBackground />
             {/* Pass handleEnterMission to Hero. Hero functionality needs to be compatible. */}
             <Hero user={currentUser} onEnterMission={handleEnterMission} />
-            <ScrollSection2 />
-
-            <footer className="py-8 text-center text-gray-500 text-sm border-t border-white/10 mt-10">
-                © {new Date().getFullYear()} ISRO Mission Simulator. All systems go.
-            </footer>
         </div>
     );
 };

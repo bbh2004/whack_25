@@ -17,9 +17,9 @@ const BackgroundContent = () => {
         <>
             <Stars
                 ref={starsRef}
-                radius={200}
+                radius={120}
                 depth={60}
-                count={10000}
+                count={15000}
                 factor={4}
                 saturation={0}
                 fade

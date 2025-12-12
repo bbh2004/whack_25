@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
     Check, X, Rocket, Fuel, Zap, Radio, Shield, Box, Lock,
-    Settings, RefreshCw, Sun, AlertTriangle, Target, Star, Medal, ChevronRight
+    Settings, RefreshCw, Sun, AlertTriangle, Target, Star, Medal, ChevronRight,
+    Info, BookOpen
 } from 'lucide-react';
-import SuccessModal from '../components/ui/SuccessModal';
 
 // --- Constants & Config ---
 const TARGET_DISTANCE = 100; // Arbitrary units for Mars
@@ -28,7 +28,128 @@ const COMPONENTS = {
     strapOn: { name: 'Boosters', mass: 200, icon: Rocket, req: true, desc: "Extra thrust." },
 };
 
-// --- Helper Components ---
+// --- Educational Content (MRD) ---
+const MRD_CONTENT = {
+    briefing: {
+        title: "LEVEL 1: MISSION REQUIREMENT DOCUMENT",
+        subtitle: "ASSEMBLY & PRE-LAUNCH CONFIGURATION",
+        sections: [
+            {
+                label: "MISSION GOAL",
+                text: "Assemble the PSLV-XL rocket to safely lift the Mars Orbiter and reach Transfer Orbit (>100 Gm)."
+            },
+            {
+                label: "CRITICAL CONSTRAINTS",
+                items: [
+                    "Vehicle: PSLV-XL ONLY (Real mission vehicle)",
+                    "Thrust-to-Weight (TWR): Must be ≥ 1.1 for liftoff",
+                    "Range: Must be ≥ 100 Gm to reach Mars",
+                    "Safety: Fairing must be INSTALLED and LOCKED"
+                ]
+            },
+            {
+                label: "ENGINEERING TIP",
+                text: "More fuel increases range but adds Mass. If the rocket is too heavy, TWR drops below 1.1 and it won't lift off. Find the balance!"
+            }
+        ]
+    },
+    failure_tips: {
+        "TOO HEAVY FOR LIFT OFF": {
+            title: "CRITICAL FAILURE: INSUFFICIENT LIFT",
+            analysis: "The rocket is too heavy for its engines. The Thrust-to-Weight Ratio (TWR) is below 1.1, meaning Gravity is pulling down harder than the engines are pushing up.",
+            correction: "RESTART MISSION. Reduce the Fuel Load to lower the mass, or ensure the Strap-on Boosters are installed for extra thrust."
+        },
+        "INSUFFICIENT FUEL RANGE": {
+            title: "MISSION ABORT: ORBIT UNREACHABLE",
+            analysis: "The simulation predicts the spacecraft will run out of fuel before reaching the Mars Transfer Orbit (100 Gm). Current Delta-V is too low.",
+            correction: "RESTART MISSION. Increase the Fuel Load to extend range. Ensure you don't add so much fuel that the rocket becomes too heavy to lift off."
+        },
+        "FAIRING NOT LOCKED": {
+            title: "STRUCTURAL INTEGRITY FAILURE",
+            analysis: "The payload fairing was installed but not secured. During Max-Q (Maximum Dynamic Pressure), aerodynamic forces tore the fairing loose, destroying the satellite.",
+            correction: "RESTART MISSION. Locate the Fairing in the assembly bay and click the 'LOCK' button until the indicator turns green."
+        },
+        "VEHICLE TOO WEAK": {
+            title: "VEHICLE CONFIGURATION ERROR",
+            analysis: "The PSLV-G variant lacks the specific impulse and thrust required for a heavy Mars Orbiter payload.",
+            correction: "RESTART MISSION. Select the 'PSLV-XL' vehicle. It is the extended version designed for this mission."
+        },
+        "BUDGET EXCEEDED (Use PSLV)": {
+            title: "MISSION CONSTRAINT VIOLATION",
+            analysis: "The LVM3 vehicle exceeds the cost parameters for the Mars Orbiter Mission ('Mangalyaan'). This mission is famous for its cost-efficiency.",
+            correction: "RESTART MISSION. Switch to the 'PSLV-XL' vehicle to stay within the mission budget."
+        },
+        "FAIRING MISSING": {
+            title: "PAYLOAD PROTECTION ERROR",
+            analysis: "No aerodynamic fairing was detected. The satellite cannot survive the atmospheric drag during ascent without protection.",
+            correction: "RESTART MISSION. Install the Fairing from the component inventory and ensure it is LOCKED."
+        },
+        "NO SATELLITE FOUND": {
+            title: "PAYLOAD MISSING",
+            analysis: "The rocket has no payload. There is nothing to send to Mars.",
+            correction: "RESTART MISSION. Install the 'Orbiter' component from the inventory."
+        },
+        "default": {
+            title: "PRE-FLIGHT CHECK FAILED",
+            analysis: "A critical system is missing or configured incorrectly (Guidance, Power, Comms, or Thermal protection).",
+            correction: "RESTART MISSION. Review the Mission Requirements. Ensure ALL components in the grid are installed and green."
+        }
+    },
+    success: {
+        title: "MISSION SUCCESS: ORBIT ACHIEVED",
+        details: [
+            {
+                topic: "THRUST-TO-WEIGHT RATIO (TWR)",
+                content: "You successfully balanced mass and fuel to keep TWR > 1.1. This ensured the engines generated enough force to overcome Earth's gravity and lift off safely."
+            },
+            {
+                topic: "DELTA-V BUDGET",
+                content: "You carried enough fuel to achieve the required 'Delta-V'. In rocket science, this isn't just distance—it's the capacity to change velocity to escape Earth's orbit."
+            },
+            {
+                topic: "AERODYNAMIC SHIELDING",
+                content: "By locking the fairing, you protected the delicate payload from 'Max-Q' (Maximum Dynamic Pressure)—the point where air resistance is strongest during ascent."
+            }
+        ]
+    }
+};
+
+const Modal = ({ title, children, onClose, variant = 'neutral', buttonText = "CONTINUE", onSecondary, secondaryButtonText }) => {
+    const bgColors = {
+        neutral: "border-blue-500 shadow-blue-900/50",
+        danger: "border-red-500 shadow-red-900/50",
+        success: "border-green-500 shadow-green-900/50"
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className={`bg-slate-900 border-4 ${bgColors[variant]} max-w-lg w-full p-6 shadow-2xl relative animate-in fade-in zoom-in duration-300`}>
+                <h2 className={`font-pixel text-sm md:text-base mb-4 text-center ${variant === 'danger' ? 'text-red-400' : variant === 'success' ? 'text-green-400' : 'text-blue-400'}`}>
+                    {title}
+                </h2>
+                <div className="space-y-4 font-mono text-xs md:text-sm text-slate-300 leading-relaxed mb-6 max-h-[60vh] overflow-y-auto custom-scroll">
+                    {children}
+                </div>
+                <div className="flex gap-3">
+                    {onSecondary && (
+                        <button
+                            onClick={onSecondary}
+                            className="flex-1 bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase"
+                        >
+                            {secondaryButtonText}
+                        </button>
+                    )}
+                    <button
+                        onClick={onClose}
+                        className={`${onSecondary ? 'flex-1' : 'w-full'} bg-slate-800 hover:bg-slate-700 border-2 border-slate-600 hover:border-white text-white font-pixel text-xs py-3 transition-all uppercase`}
+                    >
+                        {buttonText}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const PixelButton = ({ onClick, disabled, children, className = "", variant = "primary", title }) => {
     const baseStyles = "relative inline-flex items-center justify-center px-4 py-3 font-pixel text-[10px] sm:text-xs uppercase tracking-widest transition-transform active:translate-y-1 focus:outline-none select-none";
@@ -72,9 +193,6 @@ const ItemSlot = ({ icon: Icon, label, isActive, onClick, error }) => (
 
 const ProgressBar = ({ label, value, max, threshold, unit, reverse = false }) => {
     const percentage = Math.min(100, Math.max(0, (value / max) * 100));
-
-    // Logic: Generally higher is better, unless 'reverse' is true (like cost/weight limits)
-    // Here we use simplified logic: There is a "safe zone".
     const isGood = value >= threshold;
 
     return (
@@ -86,7 +204,6 @@ const ProgressBar = ({ label, value, max, threshold, unit, reverse = false }) =>
                 </span>
             </div>
             <div className="w-full h-3 bg-slate-900 border border-slate-700 relative overflow-hidden">
-                {/* Threshold Line */}
                 <div
                     className="absolute top-0 bottom-0 w-0.5 bg-white/50 z-20"
                     style={{ left: `${(threshold / max) * 100}%` }}
@@ -111,8 +228,14 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
     const [fuelLevel, setFuelLevel] = useState(50);
     const [fairingLocked, setFairingLocked] = useState(false);
     const [launchStatus, setLaunchStatus] = useState('idle'); // 'idle' | 'checking' | 'launched' | 'failed'
+
+    // UI Modal States
+    const [showBriefing, setShowBriefing] = useState(true);
+    const [isInitialBriefing, setIsInitialBriefing] = useState(true); // Added to track first view
+    const [failureReason, setFailureReason] = useState(null);
     const [showSuccess, setShowSuccess] = useState(false);
-    const [log, setLog] = useState(["Mission Initialized. Build the rocket."]);
+
+    const [log, setLog] = useState(["Waiting for Mission Config..."]);
     const [confetti, setConfetti] = useState([]);
 
     // --- Logic & Math ---
@@ -124,40 +247,24 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
         Object.entries(items).forEach(([key, isActive]) => {
             if (isActive && key !== 'fairing') mass += COMPONENTS[key].mass;
         });
-        // Fairing adds mass
         if (items.fairing) mass += 100;
-
-        // Fuel adds mass (Base hull mass included in vehicle, fuel is variable)
-        // Simplified: Fuel creates mass up to 2000kg equivalent
         mass += (fuelLevel / 100) * 1000;
         return mass;
     }, [items, fuelLevel]);
 
-    // 2. Calculate Thrust-to-Weight Ratio (Must be > 1.2 to lift safely)
-    // TWR = Thrust / (Mass * Gravity)
-    // We simplify units for the game
+    // 2. Calculate Thrust-to-Weight Ratio
     const twr = useMemo(() => {
-        const totalWeight = currentMass + 200; // +200 for base structure
+        const totalWeight = currentMass + 200;
         return selectedVehicle.thrust / totalWeight;
     }, [currentMass, selectedVehicle]);
 
-    // 3. Calculate Delta-V (Range) - The Puzzle
-    // More fuel = more range, BUT more mass reduces efficiency.
-    // Range = (Fuel% * Efficiency) / TotalMass
-    // This creates a curve. You need enough fuel, but not so much you become too heavy.
+    // 3. Calculate Range
     const range = useMemo(() => {
-        const baseEfficiency = 5000; // Arbitrary rocket science constant
-        const totalMass = currentMass + 500; // Inert mass
+        const baseEfficiency = 5000;
+        const totalMass = currentMass + 500;
         const fuelMass = (fuelLevel / 100) * 1000;
-
-        // Rocket Equation simplified: ln(wet/dry)
-        // But let's keep it linear enough for a casual user
         if (fuelLevel === 0) return 0;
-
-        // Efficiency bonus for boosters
         const boosterBonus = items.strapOn ? 1.2 : 1.0;
-
-        // Calculated Range in Million km (simulated)
         const calc = (fuelMass * baseEfficiency * boosterBonus) / (totalMass * 1.5);
         return calc;
     }, [currentMass, fuelLevel, items.strapOn]);
@@ -208,32 +315,31 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
                 setLaunchStatus('launched');
                 addLog("LIFT OFF! MOM IS ON WAY TO MARS!");
                 triggerConfetti();
-                // Wait for rocket animation (3s) to almost finish before showing success modal
-                setTimeout(() => setShowSuccess(true), 2500);
+                setTimeout(() => setShowSuccess(true), 3000);
             } else {
                 setLaunchStatus('failed');
-                addLog(`HALT: ${errors[0]}`);
+                const mainError = errors[0];
+                addLog(`HALT: ${mainError}`);
+                // Find educational tip for this specific error
+                const tip = MRD_CONTENT.failure_tips[mainError] || MRD_CONTENT.failure_tips["default"];
+                setFailureReason(tip);
             }
         }, 1500);
     };
 
     const resetSim = () => {
-        setLaunchStatus('briefing');
+        setLaunchStatus('idle');
         setFuelLevel(50);
         setShowSuccess(false);
+        setFailureReason(null);
         setItems({
             payload: false, guidance: false, telemetry: false, thermal: false,
             solar: false, strapOn: false, fairing: false,
         });
         setVehicleId('pslv-g');
         setFairingLocked(false);
-        setLog(["Systems Reset."]);
+        setLog(["Systems Reset. Check MRD."]);
         setConfetti([]);
-    };
-
-    const startMission = () => {
-        setLaunchStatus('idle');
-        addLog("Mission Initialized. Build the rocket.");
     };
 
     const triggerConfetti = () => {
@@ -342,8 +448,6 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
         );
     };
 
-    // Removed briefing screen - mission briefing is now shown in MissionSelection
-
     return (
         <div className="min-h-screen bg-slate-950 text-slate-200 font-sans flex flex-col items-center p-2 sm:p-4 select-none">
             <style>{`
@@ -362,7 +466,7 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
         }
       `}</style>
 
-            {/* CONFETTI - Pixel Stars */}
+            {/* CONFETTI */}
             {confetti.map(c => (
                 <div
                     key={c.id}
@@ -381,9 +485,97 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
                 </div>
             ))}
 
-            {/* MISSION SUCCESS POPUP */}
+            {/* 1. INITIAL BRIEFING MODAL (Start of Level) */}
+            {showBriefing && (
+                <Modal
+                    title={MRD_CONTENT.briefing.title}
+                    onClose={() => {
+                        setShowBriefing(false);
+                        setIsInitialBriefing(false);
+                    }}
+                    buttonText={isInitialBriefing ? "START ASSEMBLY" : "CONTINUE BUILDING"}
+                >
+                    <div className="text-center text-blue-300 font-bold mb-2">{MRD_CONTENT.briefing.subtitle}</div>
+
+                    <div className="space-y-4">
+                        <div className="bg-slate-800 p-3 border-l-4 border-blue-500">
+                            <h3 className="text-blue-400 font-bold mb-1 flex items-center gap-2"><Target size={14} /> MISSION GOAL</h3>
+                            <p>{MRD_CONTENT.briefing.sections[0].text}</p>
+                        </div>
+
+                        <div className="bg-slate-800 p-3 border-l-4 border-amber-500">
+                            <h3 className="text-amber-400 font-bold mb-1 flex items-center gap-2"><AlertTriangle size={14} /> CRITICAL CONSTRAINTS</h3>
+                            <ul className="list-disc pl-4 space-y-1">
+                                {MRD_CONTENT.briefing.sections[1].items.map((item, i) => (
+                                    <li key={i}>{item}</li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        <div className="bg-slate-800 p-3 border-l-4 border-green-500">
+                            <h3 className="text-green-400 font-bold mb-1 flex items-center gap-2"><BookOpen size={14} /> PHYSICS TIP</h3>
+                            <p>{MRD_CONTENT.briefing.sections[2].text}</p>
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* 2. FAILURE ANALYSIS MODAL (In Between Fail Safe) */}
+            {failureReason && (
+                <Modal
+                    title={failureReason.title}
+                    variant="danger"
+                    onClose={resetSim} // Force restart on close/click
+                    buttonText="RESTART LEVEL"
+                >
+                    <div className="flex flex-col items-center gap-4 w-full">
+                        <AlertTriangle size={48} className="text-red-500 animate-pulse" />
+
+                        <div className="w-full space-y-4">
+                            <div className="bg-red-950/30 p-3 border-l-2 border-red-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-red-400 mb-1">FAILURE ANALYSIS</h4>
+                                <p className="text-sm text-slate-300">{failureReason.analysis}</p>
+                            </div>
+
+                            <div className="bg-blue-950/30 p-3 border-l-2 border-blue-500 rounded-r">
+                                <h4 className="text-[10px] font-pixel text-blue-400 mb-1">RECOVERY PLAN</h4>
+                                <p className="text-sm text-slate-300">{failureReason.correction}</p>
+                            </div>
+                        </div>
+
+                        <div className="text-[10px] text-slate-500 mt-2 border-t border-slate-700 pt-2 w-full text-center font-pixel">
+                            SYSTEM RESET REQUIRED
+                        </div>
+                    </div>
+                </Modal>
+            )}
+
+            {/* 3. SUCCESS DEBRIEF MODAL (End of Success) */}
             {showSuccess && (
-                <SuccessModal onRetry={resetSim} onNext={onNextLevel} />
+                <Modal
+                    title={MRD_CONTENT.success.title}
+                    variant="success"
+                    onClose={onNextLevel} // Or whatever next action
+                    buttonText="NEXT LEVEL"
+                    onSecondary={resetSim}
+                    secondaryButtonText="REPLAY LEVEL"
+                >
+                    <div className="flex flex-col items-center gap-4">
+                        <Medal size={64} className="text-yellow-400 drop-shadow-[0_0_15px_rgba(250,204,21,0.5)] animate-bounce" />
+
+                        <div className="bg-slate-800 p-4 border border-green-900 rounded-sm w-full">
+                            <h3 className="text-green-400 font-bold mb-3 text-center border-b border-green-900/50 pb-2">MISSION DEBRIEF</h3>
+                            <div className="space-y-3">
+                                {MRD_CONTENT.success.details.map((point, idx) => (
+                                    <div key={idx} className="text-left">
+                                        <div className="text-[10px] font-pixel text-green-300 mb-1">✓ {point.topic}</div>
+                                        <div className="text-xs text-slate-400 leading-relaxed font-sans">{point.content}</div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </Modal>
             )}
 
             {/* HEADER */}
@@ -409,6 +601,13 @@ export default function RocketAssembly({ onNextLevel, onBack }) {
                     </div>
                 </div>
                 <div className="flex gap-4">
+                    <button
+                        onClick={() => setShowBriefing(true)}
+                        className="bg-slate-800 px-3 py-1 border border-slate-600 flex items-center gap-2 hover:bg-slate-700 transition-colors"
+                    >
+                        <Info size={14} className="text-blue-400" />
+                        <span className="text-[10px] font-pixel text-slate-300">MRD DOCS</span>
+                    </button>
                     <div className="bg-slate-900 px-4 py-2 border border-slate-700 flex flex-col items-end">
                         <span className="text-[8px] font-pixel text-slate-500 uppercase">Mission Status</span>
                         <span className={`text-[10px] font-pixel ${launchStatus === 'failed' ? 'text-red-500' : 'text-green-400'}`}>
