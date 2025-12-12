@@ -8,44 +8,39 @@ import TechButton from './ui/TechButton';
 import StarryBackground from './ui/StarryBackground';
 
 const levels = [
-
     {
         id: 'mangalyaan',
-        name: 'MARS ORBIT',
-        x: 25, y: 50, // Left
+        name: 'MANGALYAAN',
         locked: false,
         type: 'orbiter',
-        visual: 'bg-gradient-to-br from-red-500 to-orange-900',
-        shadow: 'shadow-[0_0_50px_rgba(239,68,68,0.6)]',
+        visual: 'bg-[radial-gradient(circle_at_30%_30%,_#ef4444,_#7f1d1d)]', // Mars
+        shadow: 'shadow-[0_0_40px_rgba(239,68,68,0.6)]',
         texture: 'https://www.transparenttextures.com/patterns/stardust.png'
     },
     {
         id: 'chandrayaan',
-        name: 'LUNAR SURFACE',
-        x: 42, y: 30, // Top Center
+        name: 'CHANDRAYAAN-3',
         locked: true,
         type: 'lander',
-        visual: 'bg-gradient-to-br from-gray-200 to-gray-600',
-        shadow: 'shadow-[0_0_50px_rgba(255,255,255,0.4)]',
+        visual: 'bg-[radial-gradient(circle_at_30%_30%,_#e5e7eb,_#4b5563)]', // Moon
+        shadow: 'shadow-[0_0_40px_rgba(255,255,255,0.4)]',
         texture: 'https://www.transparenttextures.com/patterns/asfalt-dark.png'
     },
     {
         id: 'adityal1',
-        name: 'SUN LAGRANGE',
-        x: 58, y: 70, // Bottom Center
+        name: 'ADITYA-L1',
         locked: true,
         type: 'solar',
-        visual: 'bg-gradient-to-br from-yellow-300 to-red-600',
-        shadow: 'shadow-[0_0_60px_rgba(250,204,21,0.8)]',
+        visual: 'bg-[radial-gradient(circle_at_center,_#fcd34d,_#b45309,_#7c2d12)] animate-pulse-slow', // Sun
+        shadow: 'shadow-[0_0_60px_rgba(251,191,36,0.7)]',
         texture: 'https://www.transparenttextures.com/patterns/arches.png'
     },
     {
         id: 'gaganyaan',
-        name: 'LOW EARTH ORBIT',
-        x: 75, y: 50, // Right
+        name: 'GAGANYAAN',
         locked: true,
         type: 'human',
-        visual: 'bg-gradient-to-br from-blue-400 to-indigo-900',
+        visual: 'bg-[radial-gradient(circle_at_30%_30%,_#3b82f6,_#1e3a8a)]', // Earth
         shadow: 'shadow-[0_0_50px_rgba(59,130,246,0.6)]',
         texture: 'https://www.transparenttextures.com/patterns/broken-noise.png'
     },
@@ -54,91 +49,88 @@ const levels = [
 const MapNode = ({ level, onClick, delay }) => {
     return (
         <motion.div
-            className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20 group"
-            style={{ left: `${level.x}%`, top: `${level.y}%` }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: delay, type: "spring", stiffness: 200 }}
+            className="transform z-20"
+            initial={{ scale: 0.9, opacity: 0, y: 50 }}
+            animate={{
+                scale: 1,
+                opacity: 1,
+                y: 0,
+            }}
+            transition={{ delay: delay, type: "spring", stiffness: 100 }}
         >
-            <button
+            <motion.button
                 onClick={() => onClick(level)}
                 disabled={level.locked}
-                className="relative flex flex-col items-center justify-center focus:outline-none transition-transform duration-300 hover:scale-110 active:scale-95 animate-float"
-            >
-                {/* Lock Overlay - Now more subtle */}
-                {level.locked && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center">
-                        <div className="bg-black/40 p-2 rounded-full border border-white/20 backdrop-blur-md shadow-2xl">
-                            <span className="text-xl opacity-80">🔒</span>
-                        </div>
-                    </div>
-                )}
-
-                {/* Planet Body */}
-                <div
-                    className={`w-32 h-32 md:w-40 md:h-40 rounded-full relative overflow-hidden transition-all duration-500 border-4 
-                    ${level.locked
-                            ? 'grayscale brightness-50 opacity-80 blur-[1px] border-gray-700/50'
-                            : `border-white/20 ${level.shadow}`
-                        } ${level.visual}`}
-                >
-                    {/* Inner Shadow for 3D sphere look */}
-                    <div className="absolute inset-0 rounded-full shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.8),inset_5px_5px_10px_rgba(255,255,255,0.2)]"></div>
-
-                    {/* Texture Overlay */}
-                    <div
-                        className="absolute inset-0 opacity-40 mix-blend-overlay"
-                        style={{ backgroundImage: `url(${level.texture})` }}
-                    ></div>
-
-                    {/* Atmosphere Glow for non-locked */}
-                    {!level.locked && (
-                        <div className="absolute -inset-2 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-full blur-md"></div>
-                    )}
-                </div>
-
-                {/* Level Tag (Angry Birds Style Stars/Score placeholder) */}
-                <div className="absolute -bottom-6 flex flex-col items-center space-y-1">
-                    <div className={`px-4 py-1.5 bg-spaceDark/90 border border-white/20 rounded-full backdrop-blur-md shadow-lg transform transition-all group-hover:-translate-y-1 ${level.locked ? 'border-gray-700 text-gray-500' : 'border-neonBlue text-neonBlue box-glow'}`}>
-                        <span className="text-xs font-black tracking-widest whitespace-nowrap">{level.name}</span>
-                    </div>
-                    {/* Stars placeholder */}
-                    {!level.locked && (
-                        <div className="flex space-x-1 text-[10px] text-yellow-500 filter drop-shadow">
-                            <span>⭐</span><span>⭐</span><span>☆</span>
-                        </div>
-                    )}
-                </div>
-            </button>
-        </motion.div>
-    );
-};
-
-const ConnectingLine = ({ start, end, locked }) => {
-    return (
-        <svg className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-visible z-10">
-            <defs>
-                <filter id="glow-line" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                </filter>
-            </defs>
-            <motion.path
-                d={`M ${start.x}% ${start.y}% Q ${(start.x + end.x) / 2}% ${(start.y + end.y) / 2 + 10}% ${end.x}% ${end.y}%`}
-                fill="none"
-                stroke={locked ? "#333" : "#00F0FF"}
-                strokeWidth={locked ? "1" : "2"}
-                strokeDasharray={locked ? "5,5" : "5,5"} // Always dashed for tech look
-                strokeOpacity={locked ? 0.3 : 0.8}
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1, strokeDashoffset: -20 }}
-                transition={{
-                    pathLength: { duration: 1.5, delay: 0.5 },
-                    strokeDashoffset: { duration: 1, repeat: Infinity, ease: "linear" }
+                className="relative flex flex-col items-center focus:outline-none"
+                animate={{
+                    y: [0, -15, 0],
                 }}
-                filter={!locked ? "url(#glow-line)" : ""}
-            />
-        </svg>
+                transition={{
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                    delay: delay * 2 // Stagger the floating animation
+                }}
+                whileHover={{ scale: 1.05, filter: "brightness(1.2)" }}
+                whileTap={{ scale: 0.95 }}
+            >
+                {/* PIXEL CARD CONTAINER - Larger & Glowier */}
+                <div className={`
+                    w-64 h-80 bg-slate-900/90 border-4 relative overflow-hidden flex flex-col items-center justify-start pt-6 gap-6 p-4
+                    ${level.locked
+                        ? 'border-gray-700 opacity-70 shadow-[0_0_20px_rgba(0,0,0,0.5)]'
+                        : 'border-neonBlue box-glow-hover shadow-[0_0_40px_rgba(0,240,255,0.3)]'
+                    }
+                    transition-all duration-300
+                `}>
+                    {/* Corner Accents (Pixel Aesthetic) */}
+                    <div className="absolute top-0 left-0 w-3 h-3 bg-white"></div>
+                    <div className="absolute top-0 right-0 w-3 h-3 bg-white"></div>
+                    <div className="absolute bottom-0 left-0 w-3 h-3 bg-white"></div>
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-white"></div>
+
+                    {/* Lock Overlay */}
+                    {level.locked && (
+                        <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
+                            <div className="bg-black p-4 border-4 border-gray-600 shadow-2xl">
+                                <span className="text-3xl opacity-80">🔒</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Planet Inside Card - Larger */}
+                    <div
+                        className={`w-36 h-36 rounded-full relative overflow-hidden border-4 shrink-0 shadow-2xl
+                        ${level.locked
+                                ? 'grayscale brightness-50 border-gray-600'
+                                : `border-white/20 ${level.shadow}`
+                            } ${level.visual}`}
+                    >
+                        <div className="absolute inset-0 rounded-full shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.8),inset_5px_5px_10px_rgba(255,255,255,0.2)]"></div>
+                        <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: `url(${level.texture})` }}></div>
+                    </div>
+
+                    {/* Card Content - Better Typography */}
+                    <div className="w-full text-center space-y-4 mt-auto pb-6 relative z-10">
+                        <div className={`mx-auto px-3 py-2 text-[10px] md:text-xs font-pixel tracking-widest uppercase border-y-2 bg-black/80 backdrop-blur-md shadow-lg ${level.locked ? 'border-gray-700 text-gray-500' : 'border-neonBlue text-neonBlue'}`}>
+                            {level.name}
+                        </div>
+
+                        {!level.locked && (
+                            <div className="flex justify-center space-x-2 text-[10px] text-yellow-400">
+                                <span className="drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]">⭐</span>
+                                <span className="drop-shadow-[0_0_5px_rgba(250,204,21,0.8)]">⭐</span>
+                                <span className="opacity-30 text-white">☆</span>
+                            </div>
+                        )}
+
+                        <div className="text-[9px] font-pixel text-slate-400 uppercase tracking-[0.2em]">
+                            {level.type} CLASS
+                        </div>
+                    </div>
+                </div>
+            </motion.button>
+        </motion.div>
     );
 };
 
@@ -152,19 +144,24 @@ const MissionBriefing = ({ mission, onClose, onStart }) => {
         >
             <SciFiCard className="w-full max-w-2xl border-white/20" glowing title={`MISSION: ${mission.name}`}>
                 <div className="space-y-6">
-                    <div className="flex space-x-6">
-                        <div className="w-32 h-32 bg-black/50 rounded-lg border border-white/10 flex items-center justify-center shrink-0">
-                            <span className="text-4xl">🚀</span>
+                    <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
+                        {/* Planet Preview */}
+                        <div className={`w-32 h-32 md:w-40 md:h-40 rounded-full shrink-0 border-4 border-white/10 shadow-2xl relative overflow-hidden ${mission.visual}`}>
+                            <div className="absolute inset-0 rounded-full shadow-[inset_-10px_-10px_20px_rgba(0,0,0,0.8)]"></div>
+                            <div className="absolute inset-0 opacity-40 mix-blend-overlay" style={{ backgroundImage: `url(${mission.texture})` }}></div>
                         </div>
-                        <div className="flex-1 space-y-2">
-                            <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-2">
-                                <span className="text-xs text-gray-500 font-mono">OBJECTIVE TYPE</span>
-                                <span className="text-sm font-bold text-white uppercase">{mission.type} CLASS</span>
+
+                        <div className="flex-1 space-y-4">
+                            <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                <span className="text-xs text-neonBlue font-mono tracking-widest">MISSION PROFILE</span>
+                                <span className="text-sm font-bold text-white uppercase bg-white/10 px-2 py-0.5 rounded">{mission.type} CLASS</span>
                             </div>
                             <p className="text-gray-300 font-mono text-sm leading-relaxed">
-                                COMMANDER, we must send an orbiter to Mars. Our budget is tight, so the LVM3 is unavailable. The PSLV-G is too weak.
+                                COMMANDER, the <span className="text-white font-bold">{mission.name}</span> mission is ready for launch sequence.
                                 <br /><br />
-                                <span className="text-techGreen font-bold">YOUR GOAL:</span> Configure the PSLV-XL. You must balance the <span className="text-techOrange">FUEL LOAD</span> carefully to reach the Transfer Orbit.
+                                <span className="text-techGreen font-bold">OBJECTIVE:</span> Establish orbit and deploy payload.
+                                <br />
+                                <span className="text-techOrange font-bold">CONSTRAINTS:</span> Manage fuel levels and orbital trajectory.
                             </p>
                         </div>
                     </div>
@@ -289,54 +286,61 @@ const MissionSelection = ({ onBack, onMissionStart }) => {
         <div className="relative min-h-screen text-white overflow-hidden flex flex-col font-sans">
             <StarryBackground />
 
+            {/* Inject Pixel Font */}
+            <style>{`
+                @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+                .font-pixel { font-family: 'Press Start 2P', cursive; }
+            `}</style>
+
             {/* Header - Made fully transparent without borders */}
-            <div className="relative z-30 px-8 py-6 flex justify-between items-center">
+            <div className="relative z-30 px-8 py-8 flex justify-between items-start">
                 <div className="flex items-center space-x-4">
                     <button
                         onClick={() => setShowProfile(true)}
-                        className="flex items-center space-x-3 bg-white/5 px-4 py-2 rounded-full border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors"
+                        className="flex items-center gap-4 bg-slate-900/80 px-6 py-4 rounded-xl border-2 border-white/20 backdrop-blur-md hover:bg-slate-800/90 hover:border-neonBlue transition-all group"
                     >
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-neonBlue to-purple-600 flex items-center justify-center text-xs font-bold border border-white/20">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-tr from-neonBlue to-purple-600 flex items-center justify-center text-lg font-pixel font-bold border-2 border-white/20 group-hover:scale-110 transition-transform shadow-lg">
                             {userProfile?.nickname ? userProfile.nickname[0].toUpperCase() : currentUser?.displayName ? currentUser.displayName[0] : 'C'}
                         </div>
                         <div className="text-left">
-                            <p className="text-xs font-bold text-white leading-none tracking-wider uppercase">{userProfile?.nickname || currentUser?.displayName || 'COMMANDER'}</p>
-                            <p className="text-[10px] text-neonBlue leading-none mt-1 font-mono">LEVEL 01 ACCESS</p>
+                            <p className="text-sm font-pixel text-white leading-none tracking-widest uppercase mb-2 group-hover:text-neonBlue transition-colors">{userProfile?.nickname || currentUser?.displayName || 'COMMANDER'}</p>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                <p className="text-[10px] text-gray-400 leading-none font-mono">LEVEL 01 ACCESS</p>
+                            </div>
                         </div>
                     </button>
                 </div>
 
-                <div className="absolute left-1/2 -translate-x-1/2">
-                    <h1 className="text-2xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white via-neonBlue to-white text-glow opacity-80">
-                        MISSION TRAJECTORY MAP
+                <div className="absolute left-1/2 -translate-x-1/2 top-10">
+                    <h1 className="text-3xl md:text-4xl font-pixel tracking-widest text-transparent bg-clip-text bg-gradient-to-b from-white to-slate-400 text-glow opacity-90 drop-shadow-[0_4px_0_rgba(0,0,0,0.5)]">
+                        MISSION MAP
                     </h1>
                 </div>
 
-                <TechButton variant="danger" onClick={handleLogout} className="ml-4 text-xs py-2 px-4">
+                <TechButton variant="danger" onClick={handleLogout} className="ml-4 text-xs py-4 px-8 font-pixel border-2">
                     LOGOUT
                 </TechButton>
             </div>
 
-            {/* Map Area - Centered & Clean */}
-            <div className="flex-1 relative w-full h-full max-w-7xl mx-auto z-10 flex items-center justify-center">
-                <div className="relative w-full h-[60vh]">
-                    {/* Connections */}
-                    {levels.map((level, index) => {
-                        if (index < levels.length - 1) {
-                            const next = levels[index + 1];
-                            return <ConnectingLine key={`line-${index}`} start={level} end={next} locked={next.locked} />;
-                        }
-                        return null;
-                    })}
+            {/* Map Area - Centered & Clean - TALLER */}
+            <div className="flex-1 relative w-full h-full max-w-7xl mx-auto z-10 flex flex-col items-center justify-center p-8">
 
-                    {/* Nodes */}
+                {/* Cards Container */}
+                <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 relative z-20">
                     {levels.map((level, index) => (
-                        <MapNode
-                            key={level.id}
-                            level={level}
-                            onClick={setSelectedMission}
-                            delay={index * 0.2}
-                        />
+                        <div key={level.id} className="relative group">
+                            {/* Horizontal Connector Line (except for last item) */}
+                            {index < levels.length - 1 && (
+                                <div className="hidden md:block absolute top-1/2 -right-12 w-12 h-1 bg-white/20 z-0"></div>
+                            )}
+
+                            <MapNode
+                                level={level}
+                                onClick={setSelectedMission}
+                                delay={index * 0.1}
+                            />
+                        </div>
                     ))}
                 </div>
             </div>
