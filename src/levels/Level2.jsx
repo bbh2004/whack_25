@@ -5,6 +5,7 @@ import {
     Power, Thermometer, Wind, Activity, ArrowUp, AlertOctagon,
     ChevronRight, Play, FastForward
 } from 'lucide-react';
+import SuccessModal from '../components/ui/SuccessModal';
 
 // --- Shared Styles ---
 const PIXEL_FONT = "font-pixel";
@@ -302,21 +303,7 @@ export default function RocketMissionL2({ onNextLevel, onBack }) {
     }
 
     if (phase === 'success') {
-        return (
-            <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
-                <div className="max-w-md w-full bg-slate-900 border-4 border-green-500 p-8 text-center shadow-[0_0_50px_rgba(34,197,94,0.3)] animate-in zoom-in">
-                    <Medal size={64} className="mx-auto text-yellow-400 mb-6 animate-bounce" />
-                    <h1 className="text-2xl font-pixel text-green-400 mb-4">ORBIT ACHIEVED!</h1>
-                    <p className="text-slate-300 text-sm font-mono mb-8">Telemetry confirms stable insertion. <br />Stage separation nominal.</p>
-                    <div className="flex gap-4 w-full">
-                        <PixelButton onClick={reset} variant="success" className="flex-1">PLAY AGAIN</PixelButton>
-                        <PixelButton onClick={onNextLevel} variant="primary" className="flex-1 flex items-center justify-center gap-2 group">
-                            NEXT LEVEL <ChevronRight className="group-hover:translate-x-1 transition-transform" size={16} />
-                        </PixelButton>
-                    </div>
-                </div>
-            </div>
-        );
+        return <SuccessModal onRetry={reset} onNext={onNextLevel} />;
     }
 
     return (

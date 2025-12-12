@@ -1,21 +1,67 @@
 
 import React, { useState } from 'react';
 import Level1 from '../levels/Level1';
+import Level2 from '../levels/Level2';
+import Level3 from '../levels/Level3';
+import Level4 from '../levels/Level4';
+import Level5 from '../levels/Level5';
+import Level6 from '../levels/Level6';
+import LevelSelection from './LevelSelection';
+import { useAuth } from '../context/AuthContext';
 
 const MissionControl = ({ mission, onBack }) => {
-    // If mission object is passed, use its ID. If string (legacy), assume Level 1 for demo.
-    const missionId = mission?.id || 1;
+    const { saveLevelProgress } = useAuth();
+    const [selectedLevel, setSelectedLevel] = useState(null);
 
-    const handleNextLevel = () => {
-        console.log("Next Level Requested");
-        // Logic to unlock next level or go back to map
-        onBack();
+    const handleLevelComplete = async (levelId) => {
+        // Save progress to unlock next level
+        await saveLevelProgress(mission?.id || 'mangalyaan', levelId);
+
+        // Advance to next level (if not the last level)
+        if (levelId < 6) {
+            setSelectedLevel(levelId + 1);
+        } else {
+            // Last level - return to level selection
+            setSelectedLevel(null);
+        }
     };
 
-    if (missionId === 1 || missionId === 'mangalyaan' || mission === "MANGALYAAN") {
-        return <Level1 onNextLevel={handleNextLevel} onBack={onBack} />;
+    const handleBackToLevelSelection = () => {
+        setSelectedLevel(null);
+    };
+
+    // Mangalyaan mission - show level selection
+    if ((mission?.id === 'mangalyaan' || mission === "MANGALYAAN") && !selectedLevel) {
+        return (
+            <LevelSelection
+                mission={mission?.id ? mission : { id: 'mangalyaan', name: 'MARS ORBIT' }}
+                onBack={onBack}
+                onSelectLevel={setSelectedLevel}
+            />
+        );
     }
 
+    // Render selected level
+    if (selectedLevel === 1) {
+        return <Level1 onNextLevel={() => handleLevelComplete(1)} onBack={handleBackToLevelSelection} />;
+    }
+    if (selectedLevel === 2) {
+        return <Level2 onNextLevel={() => handleLevelComplete(2)} onBack={handleBackToLevelSelection} />;
+    }
+    if (selectedLevel === 3) {
+        return <Level3 onNextLevel={() => handleLevelComplete(3)} onBack={handleBackToLevelSelection} />;
+    }
+    if (selectedLevel === 4) {
+        return <Level4 onNextLevel={() => handleLevelComplete(4)} onBack={handleBackToLevelSelection} />;
+    }
+    if (selectedLevel === 5) {
+        return <Level5 onNextLevel={() => handleLevelComplete(5)} onBack={handleBackToLevelSelection} />;
+    }
+    if (selectedLevel === 6) {
+        return <Level6 onNextLevel={() => handleLevelComplete(6)} onBack={handleBackToLevelSelection} />;
+    }
+
+    // Other missions - locked
     return (
         <div className="min-h-screen bg-black text-white flex items-center justify-center font-sans">
             <div className="text-center">

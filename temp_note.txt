@@ -1,0 +1,12 @@
+Great! I can see the pattern. Now I'll create a uniformstandard success screen component that can be reused across all 3 levels. Based on the reference image, I need:
+
+1. Green border (border-green-500)
+2. "MISSION ACCOMPLISHED" header stamp
+3. Circular icon with rocket and star
+4. "ORBIT ACHIEVED" title  
+5. Description text
+6. Stats table (2x2 grid)
+7. Green "RETRY LEVEL" button
+8. Blue "NEXT LEVEL" button
+
+Let me update all three levels to have this consistent success screen.

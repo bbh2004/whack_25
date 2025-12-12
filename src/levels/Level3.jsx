@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     Activity, Radio, RotateCw, RefreshCw,
-    Satellite, Play, Rocket, Lock, Crosshair
+    Satellite, Play, Rocket, Lock, Crosshair, Star, ChevronRight
 } from 'lucide-react';
+import SuccessModal from '../components/ui/SuccessModal';
 
 // --- Constants ---
 const BASE_APOGEE = 400; // km
@@ -66,7 +67,7 @@ const StatGauge = ({ label, value, unit, status = "normal" }) => {
     );
 };
 
-export default function Level3OrbitInjection({ onBack }) {
+export default function Level3OrbitInjection({ onBack, onNextLevel }) {
     // --- State ---
     // Systems
     const [attitudeActive, setAttitudeActive] = useState(false);
@@ -523,6 +524,11 @@ export default function Level3OrbitInjection({ onBack }) {
 
                 </div>
             </div>
+
+            {/* SUCCESS MODAL */}
+            {missionStatus === 'orbit_achieved' && (
+                <SuccessModal onRetry={resetLevel} onNext={onNextLevel || onBack} />
+            )}
         </div>
     );
 }

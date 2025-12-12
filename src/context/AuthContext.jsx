@@ -38,6 +38,43 @@ export function AuthProvider({ children }) {
         }
     }
 
+    async function getLevelProgress(missionId) {
+        if (!currentUser) return null;
+        try {
+            const progressRef = doc(db, "users", currentUser.uid, "progress", missionId);
+            const progressSnap = await getDoc(progressRef);
+            if (progressSnap.exists()) {
+                return progressSnap.data();
+            }
+            // Default: Level 1 unlocked for new users
+            return { unlockedLevels: [1] };
+        } catch (error) {
+            console.error("Error fetching level progress:", error);
+            return { unlockedLevels: [1] };
+        }
+    }
+
+    async function saveLevelProgress(missionId, completedLevel) {
+        if (!currentUser) return;
+        try {
+            const progressRef = doc(db, "users", currentUser.uid, "progress", missionId);
+            const currentProgress = await getLevelProgress(missionId);
+            const unlockedLevels = currentProgress.unlockedLevels || [1];
+
+            // Unlock next level if not already unlocked
+            if (completedLevel < 4 && !unlockedLevels.includes(completedLevel + 1)) {
+                unlockedLevels.push(completedLevel + 1);
+            }
+
+            await setDoc(progressRef, {
+                unlockedLevels,
+                lastPlayed: new Date().toISOString()
+            });
+        } catch (error) {
+            console.error("Error saving level progress:", error);
+        }
+    }
+
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setCurrentUser(user);
@@ -71,7 +108,9 @@ export function AuthProvider({ children }) {
         userProfile,
         signInWithGoogle,
         logout,
-        saveUserProfile
+        saveUserProfile,
+        getLevelProgress,
+        saveLevelProgress
     };
 
     if (loading) {

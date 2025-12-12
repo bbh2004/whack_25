@@ -3,14 +3,18 @@ import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import StarryBackground from '../components/ui/StarryBackground';
+import EmailOTPModal from '../components/ui/EmailOTPModal';
 
 import { getAdditionalUserInfo } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '../firebase';
 
 const RegisterPage = () => {
     const { currentUser, signInWithGoogle, saveUserProfile } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [isOnboarding, setIsOnboarding] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
 
     // Onboarding Form State
     const [formData, setFormData] = useState({
@@ -77,6 +81,64 @@ const RegisterPage = () => {
         }
     };
 
+
+
+    const handleEmailOTPSuccess = async (data) => {
+        setLoading(true);
+        setError(null);
+        try {
+            const { email, mode } = data;
+            console.log(`✅ OTP verified for ${mode}:`, email);
+
+            if (mode === 'signup') {
+                // SIGN UP: Create new account
+                const randomPassword = Math.random().toString(36).slice(-12) + 'Aa1!@#';
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, randomPassword);
+                    console.log('✅ New Firebase user created:', userCredential.user.uid);
+
+                    // Store the password hash in Firestore for future sign-ins
+                    const { doc, setDoc } = await import('firebase/firestore');
+                    await setDoc(doc(db, 'emailAuth', email), {
+                        passwordHash: btoa(randomPassword),
+                        createdAt: new Date().toISOString()
+                    });
+
+                    setIsOnboarding(true);
+                    setShowEmailModal(false);
+                } catch (createError) {
+                    if (createError.code === 'auth/email-already-in-use') {
+                        setError('This email is already registered. Please use Sign In instead.');
+                    } else {
+                        throw createError;
+                    }
+                }
+            } else {
+                // SIGN IN: Get password from Firestore
+                const { doc, getDoc } = await import('firebase/firestore');
+                const docSnap = await getDoc(doc(db, 'emailAuth', email));
+
+                if (docSnap.exists()) {
+                    const storedPassword = atob(docSnap.data().passwordHash);
+                    const userCredential = await signInWithEmailAndPassword(auth, email, storedPassword);
+                    console.log('✅ User signed in:', userCredential.user.uid);
+                    navigate('/missions', { replace: true });
+                    setShowEmailModal(false);
+                } else {
+                    setError('Account not found. Please Sign Up first.');
+                }
+            }
+        } catch (err) {
+            console.error('❌ Email auth error:', err);
+            setError(err.message || 'Failed to authenticate. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+
     return (
         <div className="relative min-h-screen text-white flex items-center justify-center overflow-hidden font-sans">
             <StarryBackground />
@@ -128,6 +190,23 @@ const RegisterPage = () => {
                                             <span>Sign Up / Sign In</span>
                                         </>
                                     )}
+                                </button>
+
+                                <div className="flex items-center gap-4 my-4">
+                                    <div className="flex-1 h-[1px] bg-white/10"></div>
+                                    <span className="text-slate-500 text-xs font-mono">OR</span>
+                                    <div className="flex-1 h-[1px] bg-white/10"></div>
+                                </div>
+
+                                <button
+                                    onClick={() => setShowEmailModal(true)}
+                                    disabled={loading}
+                                    className="w-full py-4 bg-neonBlue text-white font-bold rounded-none clip-corner-br flex items-center justify-center space-x-3 hover:bg-blue-600 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed group"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                    <span>Sign In with Email</span>
                                 </button>
                             </>
                         ) : (
@@ -196,8 +275,16 @@ const RegisterPage = () => {
                     </div>
                 </div>
             </motion.div>
+
+            {/* Email OTP Modal */}
+            <EmailOTPModal
+                isOpen={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                onSuccess={handleEmailOTPSuccess}
+            />
         </div>
     );
 };
 
 export default RegisterPage;
+
